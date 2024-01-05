@@ -1,0 +1,246 @@
+# Connecting the Microchip SAM-IoT WG Development Board (Part No. EV75S95A) to Azure IoT Hub
+
+NOTE: Should you encounter any issues/obstacles with the following procedure, check out the [FAQ section](./FAQ.md)
+
+## Introduction
+
+[Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub/about-iot-hub) is a managed service, hosted in the Cloud, that acts as a central messaging hub for bi-directional communication between your IoT application and the devices it manages. You can use Azure IoT Hub to build IoT solutions with reliable and secure communications between millions of IoT devices and a cloud-hosted solution backend. You can connect virtually any device to IoT Hub.
+
+IoT Hub supports communications both from the device to the cloud and from the cloud to the device. IoT Hub supports multiple messaging patterns such as device-to-cloud telemetry, file upload from devices, and request-reply methods to control your devices from the cloud. IoT Hub monitoring helps you maintain the health of your solution by tracking events such as device creation, device failures, and device connections.
+
+IoT Hub's capabilities help you build scalable, full-featured IoT solutions such as managing industrial equipment used in manufacturing, tracking valuable assets in healthcare, and monitoring office building usage.
+
+## Procedure
+
+### **Create an IoT Hub and Device Provisioning Service (DPS)**
+
+Click [here](https://learn.microsoft.com/en-us/azure/iot-dps/quick-setup-auto-provision) and follow the procedure to create an IoT Hub, create a Device Provisioning Service (DPS), and link the IoT Hub to the DPS (do **not** do the section "Clean Up Resources").
+
+### **Upload Signer Certificate into DPS**
+
+1. Prepare the certificates for the upload process:
+
+    - Go to the folder containing the certificate chain located at `\[your_path]\.microchip-iot` (this hidden folder should have been already automatically generated during program execution of the [IoT Provisioning Tool](https://www.microchip.com/en-us/solutions/internet-of-things/iot-development-kits/iot-provisioning-tool))
+
+    - Copy all `*.crt` files and rename each to `*.pem`
+
+2. In the [Microsoft Azure Portal](https://portal.azure.com/#home), navigate to your DPS resource and then use the left-hand navigation pane to select `Settings` > `Certificates`.
+
+3. Click the `+ Add` button. Give the certificate any meaningful name and then browse to the `signer-ca.pem` file. Check the box for "Set certificate status to verified on upload". Click the `Save` button.
+
+    <img src=".//media/image18a.png" width=350/>
+
+    As a result, the status of your uploaded certification should be “Verified” as shown below (make sure to refresh the page to see the updated change in status). 
+
+    <img src=".//media/image18b.png" width=800/>
+
+### **Add a New Enrollment Group using the Signer Certificate**
+
+1. In the Azure portal, navigate to your DPS &gt; `Manage enrollments` &gt;
+Select `Enrollment Groups` tab:
+
+    <img src=".//media/image19.png" width=600/>
+
+2. Click the `+ Add Enrollment group` icon.
+
+3. Click on the `Registration + provisioning` tab and configure the following:
+    - Attestation mechanism = X.509 certificates uploaded to this Device Provisioning Service instance
+    - Primary certificate = name of the signer certificate which was created earlier
+    - Group name = any meaningful name
+
+        <img src=".//media/image18c.png" width=500/>
+
+4. Click the `Review + create` button, then click on the `Create` button at the bottom of the next page. Once this has been done, your enrollment group name should show up in the `Enrollment groups` tab.
+
+    <img src=".//media/image18d.png" width=500/>
+
+### **Program the Plug and Play Demo**
+
+[IoT Plug and Play](https://docs.microsoft.com/en-us/azure/iot-develop/overview-iot-plug-and-play) enables solution builders to integrate IoT devices with their solutions without any manual configuration. At the core of IoT Plug and Play is a device model that a device uses to advertise its capabilities to an IoT Plug and Play-enabled application. This model is structured as a set of elements that define:
+
+- `Properties` that represent the read-only or writable state of a device or other entity. For example, a device serial number may be a read-only property and a target temperature on a thermostat may be a writable property
+
+- `Telemetry` which is the data emitted by a device, whether the data is a regular stream of sensor readings, an occasional error, or an information message
+
+- `Commands` that describe a function or operation that can be done on a device. For example, a command could reboot a gateway or take a picture using a remote camera
+
+1. Clone/download the MPLAB X demo project
+    by issuing the following commands in a `Command Prompt` or `PowerShell`
+    window:
+
+    ```bash
+    git clone https://github.com/Azure-Samples/Microchip-SAM-IoT-Wx.git
+    cd Microchip-SAM-IoT-Wx
+    git submodule update --init
+    ```
+
+2. Connect the board to PC, then make sure `CURIOSITY` device shows up as a disk drive on the `Desktop` or in a `File Explorer` window. Drag and drop (i.e. copy) the pre-built `*.hex` file (located in the folder at `Microchip-SAM-IoT-Wx` > `firmware` > `AzurePnPDps.X` > `dist` > `SAMD21_WG_IOT` > `production`) to the `CURIOSITY` drive 
+
+    <img src=".//media/image115.png">
+
+    NOTE: If this file copy operation fails for any reason, [Make and Program Device](./AzurePnP_MPLABX.md) by building the MPLAB X source code project that was used to generate the `*.hex` file
+
+3. Set up a Command Line Interface (CLI) to the board
+
+    - Open a serial terminal (e.g. PuTTY, TeraTerm, etc.) and connect to the COM port corresponding to your board at 9600 baud (e.g. open PuTTY Configuration window &gt; choose `session` &gt; choose `Serial`&gt; Enter the right COMx port). You can find the COM info by opening your PC’s `Device Manager` &gt; expand `Ports(COM & LPT)` &gt; take note of `Curiosity Virtual COM Port` 
+
+        <img src=".//media/image27.png">
+
+ 4. Launch a terminal emulator window and connect to the COM port corresponding to the SAM-IoT board at `9600` baud (**disable** local echo for the terminal settings for best results). Hit `[RETURN]` to bring up the Command Line Interface prompt (which is simply the `>` character). Type `help` and then hit `[RETURN]` to get the list of available commands for the CLI.  The Command Line Interface allows you to send simple ASCII-string commands to set or get the user-configurable operating parameters of the application while it is running.  The CLI prompt is simply the `>` character
+
+    <img src=".//media/image44.png" style="width:5.in;height:3.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+5. In the terminal emulator window, set the debug messaging level to 0 to temporarily disable the output messages. Use the `debug <level>` command by manually typing it into the CLI.  The complete command must be followed by hitting `[RETURN]`
+    ```bash
+    >debug 0
+    ```
+
+6. Perform a Wi-Fi scan to see the list of Access Points that are currently being detected by the board's Wi-Fi network controller.  Use  the `wifi` command's `scan` option by manually typing it into the CLI.  The complete command must be followed by hitting `[RETURN]`
+    ```bash
+    >wifi -scan
+    ```
+
+7. Configure the SAM-IoT board's internal Wi-Fi settings with your wireless router’s SSID and password using the `wifi` command by manually typing it into the Command Line Interface (CLI).  The complete command must be followed by hitting `[RETURN]` (there cannot be any spaces used in the SSID or password).
+    ```bash
+    >wifi -set <NETWORK_SSID>,<PASSWORD>,<SECURITY_OPTION[1=Open|2=WPA|3=WEP]>
+    ```
+    For example, if the SSID of the router is "MyWirelessRouter" and the WPA key is "MyRoutersPassword", the exact command to type into the CLI (followed by `[RETURN]`) would be:
+    ```bash
+    >wifi -set MyWirelessRouter,MyRoutersPassword,2
+    ```
+
+8. Look up the ID Scope corresponding to your DPS in the Microsoft Azure Portal.  This value is displayed in a web browser when clicking on `Overview` on the DPS resource page (the DPS should have been created earlier using a web page interface on the Azure Portal).  The ID Scope is programmed/saved into the SAM-IoT board in the next step using a CLI command (allowing you to change the ID Scope for the board without having to reprogram the MCU's application firmware).
+
+    <img src=".//media/image23.png" style="width:6.5.in;height:1.43506in" alt="A screenshot of a cell phone Description automatically generated" />
+
+9. In the terminal emulator window, confirm that `local echo` is **disabled** in the terminal settings. Hit `[RETURN]` to bring up the Command Line Interface prompt (which is simply the `>` character). At the CLI prompt, type in the command `idscope <MY_ID_SCOPE>` to set the ID Scope (which gets saved in the ATECCA608B secure element on the SAM-IoT board) and then hit `[RETURN]`. To confirm it was set correctly, the ID Scope can be read out from the board by issuing the `idscope` command (i.e. without specifying an ID Scope value as the parameter on the command line).
+
+    <img src=".//media/image46.png" style="width:5.in;height:3.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+10. At the CLI prompt, type in the command `reset` and hit `[RETURN]` to restart the host application using the updated ID Scope to establish a connection to your DPS
+    ```bash
+    >reset
+    ```
+    
+11.	Wait for the SAM-IoT board to connect to your DPS and stabilize (it could take a few minutes); eventually the Blue and Green LEDs should both stay constantly on (which signifies a successful & stable connection to DPS).  If the Red LED comes on and stays lit, then something was incorrectly programmed (e.g. application firmware, Wi-Fi credentials, ID Scope).  If the Blue LED is not constantly on, then there is an issue with connecting to your wireless access point.
+
+12. At this point, the board should have established a valid cloud connection (this can be confirmed visually by the Green LED staying on constantly).  The `cloud` command can be used at any time to confirm the cloud connection status using the CLI.  The complete command must be followed by hitting `[RETURN]`
+    ```bash
+    >cloud -status
+    ```
+
+13. To enable the “full” debug messaging output to the terminal emulator window, execute the command `debug 4` on the Command Line Interface (CLI).  To completely disable the debug messages at any time, execute the command `debug 0` (debug levels range from 0 to 4).  The CLI is always active, even while debug messages are being continuously displayed on the terminal window
+
+### **Verify the SAM-IoT Device Registration to Azure IoT Hub**
+
+A successful SAM-IoT to Azure DPS connection can be verified two ways:
+
+1) Correct device ID shows up in the DPS enrollment
+2) Correct device ID shows up in the IoT Hub
+
+Procedure:
+
+1. In the [Azure Portal](https://portal.azure.com/#home), go to your DPS &gt; click `Manage enrollments` &gt; under Enrollment Group, click `your group name` &gt; click Registration status `Details` &gt; device should show up with the IoT Hub info that it got assigned to (Assigned Hub)
+
+    <img src=".//media/image28a.png"/>
+    <img src=".//media/image28b.png"/>
+    <img src=".//media/image28c.png"/>
+
+2. In the [Azure Portal](https://portal.azure.com/#home), go to your IoT Hub &gt; click `Devices` &gt; device should show up with Status `Enabled` and Authentication type `Self-signed X509 Certificate`
+
+    <img src=".//media/image29.png"/>
+
+### **SAM-IoT Board Interaction with Azure IoT Explorer**
+
+ Once the SAM-IoT connection to Azure IoT Hub has been verified, the device can be monitored & controlled using Microsoft's Azure IoT Explorer. The Azure IoT Explorer is a graphical tool for interacting with and testing your IoT device on Azure. Refer to [Install Azure IoT Explorer](https://docs.microsoft.com/azure/iot-pnp/howto-install-iot-explorer#install-azure-iot-explorer) for additional details.
+
+1. Connect Azure IoT Explorer to IoT Hub by providing your IoT Hub’s connection string.  From the Azure Portal: click on `your IoT Hub` &gt; `Shared access polices` &gt; `iothubowner` &gt; connection string-primary key &gt; Copy to clipboard
+
+    <img src=".//media/image30.png" style="width:2in;height:4in" alt="A screenshot of a cell phone Description automatically generated" />
+
+2. Launch Azure IoT Explorer: Click on `Add connection` &gt; paste the
+    `Connection string` &gt; Save
+
+    <img src=".//media/image31.png" style="width:5.56482in;height:2.24436in" alt="A screenshot of a cell phone Description automatically generated" />
+
+    <img src=".//media/image37.png" style="width:4.49781in;height:3.72222in" alt="A screenshot of a cell phone Description automatically generated" />
+
+3. In the Azure IoT Explorer window, click on the `Home` link near the top of the window
+
+4. On the left-hand side of the Azure IoT Explorer window, click on `IoT Plug and Play Settings`
+
+    <img src=".//media/image48.png" style="width:5.in;height:3.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+5. Please make sure `Public repository` is in the list
+
+    If `Public repository` is not listed, add it using the `Add` icon
+
+    <img src=".//media/image49.png" style="width:5.in;height:3.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+6. Click on `Save`
+
+    <img src=".//media/image50.png" style="width:5.in;height:3.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+7. On the left-hand side of the IoT Explorer window, click on `IoT hubs`
+
+    <img src=".//media/image51.png" style="width:5.in;height:2.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+8. Verify that the name of your IoT hub is displayed, then click on `View devices in this hub`
+
+    <img src=".//media/image52.png" style="width:5.in;height:3.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+9. Verify that your device ID is displayed (and status is **Enabled**), then click on it
+
+    <img src=".//media/image53.png" style="width:5.in;height:2.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+  
+10. On the left-hand side of the IoT Explorer window, click on `IoT Plug and Play components`
+
+    <img src=".//media/image54.png" style="width:5.in;height:3.18982in" alt="A screenshot of a cell phone Description automatically generated" />	
+
+11.	Click on `Default component` near the bottom of the IoT Explorer window
+
+    <img src=".//media/image55.png" style="width:5.in;height:2.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+ 
+12.	Click on `Properties (read-only)` near the top of the IoT Explorer window
+
+13.	Confirm that the `Value` each LED property matches the physical state observed on the SAM-IoT board (1 = On, 2 = Off, 3 = Blinking)
+
+    <img src=".//media/image57.png" style="width:5.in;height:3.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+14.	Click on `Properties (writable)` near the top of the IoT Explorer window
+
+15. Click on the input field labeled `led_y` (the property corresponding to the Yellow LED) and select `Blink`
+
+    <img src=".//media/image59.png" style="width:5.in;height:1.48982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+16. Click on `Update desired value`
+
+    <img src=".//media/image60.png" style="width:5.in;height:1.48982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+17. Observe the notification that the request to write the property was accepted by your device, and that the Yellow LED on the SAM-IoT board is currently blinking/toggling/flashing
+
+    <img src=".//media/image61.png" style="width:5.in;height:1.48982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+18. Click on `Telemetry` near the top of the IoT Explorer window and then click on `Start`
+
+19. Observe the telemetry data (for the temperature and light sensors) is updating every few seconds
+
+    <img src=".//media/image69.png" style="width:5.in;height:2.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+20. Increase the ambient light shining on top of the board and observe that the value of the light sensor increases noticeably within a few seconds
+
+    <img src=".//media/image70.png" style="width:5.in;height:2.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+21. On the SAM-IoT WG Development Board, press and release user buttons SW0 and/or SW1.  The Red LED may toggle at least once on each button press event that is detected (not due to any error condition)
+
+    <img src=".//media/image71.png" style="width:5.in;height:1.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+22. Observe the button event message (telemetry) that is generated each time a user button has been pressed/released
+
+    <img src=".//media/image72.png" style="width:5.in;height:2.18982in" alt="A screenshot of a cell phone Description automatically generated" />
+
+23. Click on `Commands` near the top of the IoT Explorer window
+
+24. Click on the input field for `delay` and type `PT10S`, then click `Send command`.  Confirm that the command was successfully invoked via a notification message, and that the SAM-IoT Development Board resets itself in approximately 10 seconds (the LEDs on the board should all go off and then go through the startup initialization cycle)
+
+    <img src=".//media/image74.png" style="width:5.in;height:2.18982in" alt="A screenshot of a cell phone Description automatically generated" />
