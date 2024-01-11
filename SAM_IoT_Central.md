@@ -1,4 +1,4 @@
-# Connecting the SAM-IoT WG Development Board (Part No. EV75S95A) to Azure IoT Central
+# Connecting the SAM-IoT Wx v2 Development Board (Part No. EV62V87A) to Azure IoT Central
 
 NOTE: Should you encounter any issues/obstacles with the following procedure, check out the [FAQ section](./FAQ.md)
 
@@ -23,8 +23,8 @@ As a solution builder, you can use IoT Central to develop a cloud-hosted IoT sol
 1. Clone/download the MPLAB X demo project by issuing the following commands in a `Command Prompt` or `PowerShell` window
 
     ```bash
-    git clone https://github.com/Azure-Samples/Microchip-SAM-IoT-Wx.git
-    cd Microchip-SAM-IoT-Wx
+    git clone https://github.com/MicrochipTech/AzureDemo_SAM-IoT-Wx-v2.git
+    cd AzureDemo_SAM-IoT-Wx-v2
     git submodule update --init
     ```
 

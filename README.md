@@ -10,13 +10,14 @@
 
 - [Introduction](#introduction)
 - [Background Knowledge](#background-knowledge)
-  - [SAM-IoT Wx v2 Development Board Overview & Features](#sam-iot-wx-v2-development-board-overview--features)
+  - [SAM-IoT Wx v2 Development Board Overview](#sam-iot-wx-v2-development-board-overview)
   - [Microchip “Provisioning” vs. Microsoft “Provisioning”](#microchip-provisioning-vs-microsoft-provisioning)
   - [High Level Architecture between the Client (SAM-IoT) and the Cloud (Azure)](#high-level-architecture-between-the-client-sam-iot-and-the-cloud-azure)
   - [Azure IoT Embedded C SDK](#azure-iot-embedded-c-sdk)
   - [TLS Connection](#tls-connection)
   - [MQTT Connection](#mqtt-connection)
 - [Create an Azure Account and Subscription](#create-an-azure-account-and-subscription)
+- [Adding Extra Sensors to the SAM-IoT Wx v2 Development Board](#adding-extra-sensors-to-the-sam-iot-wx-v2-development-board)
 - [Program the SAM-IoT Wx v2 Development Board](#program-the-sam-iot-wx-v2-development-board)
   - [1. Install the Development Tools](#1-install-the-development-tools)
   - [2. Provision the Development Board](#2-provision-the-development-board)
@@ -30,7 +31,7 @@
 
 ## Background Knowledge
 
-### SAM-IoT Wx v2 Development Board Overview & Features
+### SAM-IoT Wx v2 Development Board Overview
 
  Download the [SAM-IoT Wx v2 Development Board User Guide](https://ww1.microchip.com/downloads/aemDocuments/documents/MCU32/ProductDocuments/UserGuides/SAM-IoT-Wx-v2-Hardware-User’s-Guide-DS70005506.pdf) for more details including the schematics for the board.
 
@@ -100,6 +101,10 @@ Sign up for a free Azure account for evaluation purposes by following the proces
 
 Should you encounter any issues with your account or subscription, [submit a technical support ticket](https://azure.microsoft.com/en-us/support/options/).
 
+## Adding Extra Sensors to the SAM-IoT Wx v2 Development Board
+
+Even though each SAM-IoT Wx v2 Development Board has its own on-board light and temperature sensors, additional sensors can optionally be added relatively quickly using existing off-the-shelf hardware. Click [here](./Clicks.md) for more details on how to add these sensors!
+
 ## Program the SAM-IoT Wx v2 Development Board
 
 ### 1. Install the Development Tools
@@ -152,7 +157,7 @@ Click [here](https://docs.microsoft.com/en-us/azure/iot-central/overview-iot-opt
 
     IoT Hub's capabilities help you build scalable, full-featured IoT solutions such as managing industrial equipment used in manufacturing, tracking valuable assets in healthcare, and monitoring office building usage.
 
-    Click this link for the programming procedure: [Connecting the Microchip SAM-IoT Wx Development Board to Azure IoT Hub](./SAM_IoT_Hub.md)
+    Click this link for the programming procedure: [Connecting the Microchip SAM-IoT Wx v2 Development Board to Azure IoT Hub](./SAM_IoT_Hub.md)
 
 ## Frequently Asked Questions
 

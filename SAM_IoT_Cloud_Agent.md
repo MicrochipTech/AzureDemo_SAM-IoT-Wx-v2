@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This document describes how to utilize the SAM-IoT WG Development Board as a cloud agent – providing a serial-to-cloud bridge between an application processor (e.g. PIC-IoT Wx Development Board) and an IoT Central application. The SAM-IoT WG Development Board will be provisioned for use with Azure IoT services using self-signed X.509 certificate-based authentication.
+This document describes how to utilize the SAM-IoT Wx v2 Development Board as a cloud agent – providing a serial-to-cloud bridge between an application processor (e.g. PIC-IoT Wx Development Board) and an IoT Central application. The SAM-IoT Wx v2 Development Board will be provisioned for use with Azure IoT services using self-signed X.509 certificate-based authentication.
 
 
 
@@ -114,8 +114,8 @@ Click this link for the setup procedure: [Development Tools Installation](https:
 1. Clone/download the MPLAB X demo project by issuing the following commands in a `Command Prompt` or `PowerShell` window.
 
    ```bash
-   git clone https://github.com/Azure-Samples/Microchip-SAM-IoT-Wx.git
-   cd Microchip-SAM-IoT-Wx
+   git clone https://github.com/MicrochipTech/AzureDemo_SAM-IoT-Wx-v2.git
+   cd AzureDemo_SAM-IoT-Wx-v2
    git submodule update --init
    ```
 
