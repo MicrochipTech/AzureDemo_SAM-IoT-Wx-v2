@@ -166,6 +166,8 @@ extern pf_MQTT_CLIENT    pf_mqtt_iothub_client;
 extern void              sys_cmd_init();
 extern userdata_status_t userdata_status;
 
+bool use_AQ9_sensors = true;
+
 #ifdef IOT_PLUG_AND_PLAY_MODEL_ID
 extern az_iot_pnp_client pnp_client;
 #else
@@ -419,8 +421,6 @@ void APP_Tasks(void)
         case APP_STATE_CRYPTO_INIT:
         {
             
-            //init_AQ9();
-
             char serialNumber_buf[25];
 
             shared_networking_params.allBits = 0;
@@ -465,10 +465,20 @@ void APP_Tasks(void)
 #endif
             debug_setPrefix(attDeviceID);
             CLOUD_setdeviceId(attDeviceID);
-            appData.state = APP_STATE_WDRV_INIT;
+            appData.state = APP_STATE_AQ9_INIT;
             break;
         }
 
+        case APP_STATE_AQ9_INIT:
+        {
+            if (init_AQ9() != 0){
+                debug_printError("  APP: Error initializing AQ9 sensor, using only base board sensors");
+                use_AQ9_sensors = false;
+            }
+            appData.state = APP_STATE_WDRV_INIT;
+            break;
+        }   
+        
         case APP_STATE_WDRV_INIT:
         {
             if (SYS_STATUS_READY == WDRV_WINC_Status(sysObj.drvWifiWinc))
@@ -866,63 +876,108 @@ int32_t APP_GetLightSensorValue(void)
 uint8_t init_AQ9(void)
 {
     uint8_t registerAddr = ENS160_REG_ID;
-    /* Temp sensor read buffer */
-    uint8_t rxBuffer[2] = {0xFF, 0xFF};
+    
+    uint8_t dataBuffer[2] = {0xFF, 0xFF};
     uint16_t id;
+    uint16_t error = 0;
 
+    while (SERCOM1_I2C_IsBusy() == true);
+    
+    
+    SERCOM1_I2C_Write(ENS160_I2C_ADDRESS, (uint8_t*)&registerAddr, 1);
+    while (SERCOM1_I2C_IsBusy() == true){
+        
+    }
+    
+    SERCOM1_I2C_Read(ENS160_I2C_ADDRESS, (uint8_t*)&dataBuffer, 2);
     while (SERCOM1_I2C_IsBusy() == true)
     {
-        /* Wait for the I2C */
+    
     }
-
-    if (SERCOM1_I2C_WriteRead(ENS160_I2C_ADDRESS, (uint8_t*)&registerAddr, 1, (uint8_t*)rxBuffer, 2) == true)
+    
+    
+    if (!error)
     {
         while (SERCOM1_I2C_IsBusy() == true)
         {
-            /* Wait for the I2C transfer to complete */
+        
         }
 
         /* Transfer complete. Check if the transfer was successful */
         if (SERCOM1_I2C_ErrorGet() == SERCOM_I2C_ERROR_NONE)
         {
-            id = (rxBuffer[0] << 8) | rxBuffer[1];
+            id = (dataBuffer[1] << 8) | dataBuffer[0];
             if (id != ENS160_ID_VALUE){
-                LED_SetRed(LED_STATE_BLINK_SLOW);
-                debug_printError("  APP: read invalid ID from AQ9 (%x)", id);
+                debug_printError("  APP: read invalid ID from AQ9, using only base board sensors");
                 return 10;
             }
+            debug_printError("  APP: id read %x %x", dataBuffer[1], dataBuffer[0]);
+            
+            // ID ok, now write OPMODE to put ENS160 to active measuring mode
+            dataBuffer[0] = ENS160_REG_OPMODE;
+            dataBuffer[1] = ENS160_OPMODE_ACTIVE;
+            
+            SERCOM1_I2C_Write(ENS160_I2C_ADDRESS, (uint8_t*)&dataBuffer, 2);
+            while (SERCOM1_I2C_IsBusy() == true)
+            {
+            }
+    
+            registerAddr = ENS160_REG_STATUS;
+            SERCOM1_I2C_Write(ENS160_I2C_ADDRESS, (uint8_t*)&registerAddr, 1);
+            while (SERCOM1_I2C_IsBusy() == true){
+            }
+            SERCOM1_I2C_Read(ENS160_I2C_ADDRESS, (uint8_t*)&dataBuffer, 1);
+            while (SERCOM1_I2C_IsBusy() == true)
+            {
+            }
+            
+        debug_printError("  APP: AQ9 Status %x", dataBuffer[0]);
+            
+            
+
+            
             
         }
         else
         {
-            LED_SetRed(LED_STATE_BLINK_SLOW);
+            debug_printError("  APP: error communicating with AQ9, using only base board sensors");
             return 10;
         }
+    } else 
+    {
+        debug_printError("  APP: error communicating with AQ9, using only base board sensors");
+        return 10;
     }
 
     return 0;
-        
+      
 
 }
-/**********************************************
- * Read Temperature Sensor value
- **********************************************/
+
 uint8_t APP_GetAQI(void)
 {
     uint8_t retVal = 0;
 
-    
-    /* TA: AMBIENT TEMPERATURE REGISTER ADDRESS: 0x5 */
+        
     uint8_t registerAddr = ENS160_REG_AQI;
-    /* Temp sensor read buffer */
-    uint8_t rxBuffer[2];
+    uint8_t AQI_data;
 
     while (SERCOM1_I2C_IsBusy() == true)
     {
         /* Wait for the I2C */
     }
 
-    if (SERCOM1_I2C_WriteRead(ENS160_I2C_ADDRESS, (uint8_t*)&registerAddr, 1, (uint8_t*)rxBuffer, 2) == true)
+    SERCOM1_I2C_Write(ENS160_I2C_ADDRESS, (uint8_t*)&registerAddr, 1);
+    while (SERCOM1_I2C_IsBusy() == true){
+        
+    }
+    
+    SERCOM1_I2C_Read(ENS160_I2C_ADDRESS, (uint8_t*)&AQI_data, 1);
+    while (SERCOM1_I2C_IsBusy() == true)
+    {
+    
+    }
+        
     {
         while (SERCOM1_I2C_IsBusy() == true)
         {
@@ -932,7 +987,8 @@ uint8_t APP_GetAQI(void)
         /* Transfer complete. Check if the transfer was successful */
         if (SERCOM1_I2C_ErrorGet() == SERCOM_I2C_ERROR_NONE)
         {
-            // TODO
+            retVal = AQI_data;
+            debug_printInfo("  APP: AQI %d", AQI_data);
         }
         else
         {
@@ -943,6 +999,95 @@ uint8_t APP_GetAQI(void)
     return retVal;
 }
 
+uint16_t APP_GetTVOC(void)
+{
+            
+    uint8_t registerAddr = ENS160_REG_TVOC;
+    uint8_t rxBuffer[2];
+    uint16_t TVOC_data;
+
+    while (SERCOM1_I2C_IsBusy() == true)
+    {
+        /* Wait for the I2C */
+    }
+
+    SERCOM1_I2C_Write(ENS160_I2C_ADDRESS, (uint8_t*)&registerAddr, 1);
+    while (SERCOM1_I2C_IsBusy() == true){
+        
+    }
+    
+    SERCOM1_I2C_Read(ENS160_I2C_ADDRESS, (uint8_t*)&rxBuffer, 2);
+    while (SERCOM1_I2C_IsBusy() == true)
+    {
+    
+    }
+        
+    {
+        while (SERCOM1_I2C_IsBusy() == true)
+        {
+            /* Wait for the I2C transfer to complete */
+        }
+
+        /* Transfer complete. Check if the transfer was successful */
+        if (SERCOM1_I2C_ErrorGet() == SERCOM_I2C_ERROR_NONE)
+        {
+            TVOC_data = rxBuffer[1] << 8 | rxBuffer[0];
+            
+            debug_printInfo("  APP: TVOC %d", TVOC_data);
+        }
+        else
+        {
+            LED_SetRed(LED_STATE_BLINK_SLOW);
+        }
+    }
+
+    return TVOC_data;
+}
+
+uint16_t APP_GetECO2(void)
+{
+
+    uint8_t registerAddr = ENS160_REG_ECO2;
+    uint8_t rxBuffer[2];
+    uint16_t ECO2_data;
+
+    while (SERCOM1_I2C_IsBusy() == true)
+    {
+        /* Wait for the I2C */
+    }
+
+    SERCOM1_I2C_Write(ENS160_I2C_ADDRESS, (uint8_t*)&registerAddr, 1);
+    while (SERCOM1_I2C_IsBusy() == true){
+        
+    }
+    
+    SERCOM1_I2C_Read(ENS160_I2C_ADDRESS, (uint8_t*)&rxBuffer, 2);
+    while (SERCOM1_I2C_IsBusy() == true)
+    {
+    
+    }
+        
+    {
+        while (SERCOM1_I2C_IsBusy() == true)
+        {
+            /* Wait for the I2C transfer to complete */
+        }
+
+        /* Transfer complete. Check if the transfer was successful */
+        if (SERCOM1_I2C_ErrorGet() == SERCOM_I2C_ERROR_NONE)
+        {
+            ECO2_data = rxBuffer[1] << 8 | rxBuffer[0];
+            
+            debug_printInfo("  APP: ECO2 %d", ECO2_data);
+        }
+        else
+        {
+            LED_SetRed(LED_STATE_BLINK_SLOW);
+        }
+    }
+
+    return ECO2_data;
+    }
 
 /**********************************************
  * Entry point for telemetry

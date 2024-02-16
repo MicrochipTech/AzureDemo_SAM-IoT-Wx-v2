@@ -92,6 +92,7 @@ typedef enum
 {
     /* Application's state machine's initial state. */
     APP_STATE_CRYPTO_INIT = 0,
+    APP_STATE_AQ9_INIT,
     APP_STATE_WDRV_INIT,
     APP_STATE_WDRV_INIT_READY,
     APP_STATE_WDRV_OPEN,
@@ -243,6 +244,9 @@ void    APP_WifiGetStatus(char* buffer);
 void    APP_WifiScan(char* buffer);
 
 uint8_t init_AQ9(void);
+uint8_t APP_GetAQI(void);
+uint16_t APP_GetTVOC(void);
+uint16_t APP_GetECO2(void);
 
 #endif /* _APP_H */
 

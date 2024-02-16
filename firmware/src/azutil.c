@@ -13,6 +13,7 @@ extern az_iot_hub_client iothub_client;
 #endif
 extern volatile uint32_t telemetryInterval;
 
+extern bool use_AQ9_sensors;
 extern char deviceIpAddress;
 
 // used by led.c to communicate LED state changes
@@ -49,6 +50,10 @@ static const az_span iot_hub_property_desired_version = AZ_SPAN_LITERAL_FROM_STR
 
 static const az_span telemetry_name_temperature_span = AZ_SPAN_LITERAL_FROM_STR("temperature");
 static const az_span telemetry_name_light_span       = AZ_SPAN_LITERAL_FROM_STR("light");
+static const az_span telemetry_name_aqi_span       = AZ_SPAN_LITERAL_FROM_STR("aqi_uba");
+static const az_span telemetry_name_tvoc_span       = AZ_SPAN_LITERAL_FROM_STR("tvoc");
+static const az_span telemetry_name_co2_span       = AZ_SPAN_LITERAL_FROM_STR("eco2");
+
 
 static const az_span telemetry_name_long       = AZ_SPAN_LITERAL_FROM_STR("telemetry_Lng");
 static const az_span telemetry_name_bool       = AZ_SPAN_LITERAL_FROM_STR("telemetry_Bool");
@@ -271,6 +276,8 @@ static az_result append_reported_property_response_int32(
 /**********************************************
 * Build sensor telemetry JSON
 **********************************************/
+
+/*
 az_result build_sensor_telemetry_message(
     az_span* out_payload_span,
     int32_t  temperature,
@@ -294,6 +301,56 @@ az_result build_sensor_telemetry_message(
     *out_payload_span = az_json_writer_get_bytes_used_in_destination(&jw);
     return AZ_OK;
 }
+*/
+
+/**********************************************
+* Build sensor telemetry JSON
+**********************************************/
+az_result build_sensor_telemetry_message(
+    az_span* out_payload_span,
+    int32_t  temperature,
+    int32_t  light,
+    int32_t  AQI,
+    int32_t  TVOC,
+    int32_t  ECO2)
+{
+    az_json_writer jw;
+    memset(&pnp_telemetry_payload_buffer, 0, sizeof(pnp_telemetry_payload_buffer));
+    RETURN_ERR_IF_FAILED(start_json_object(&jw, AZ_SPAN_FROM_BUFFER(pnp_telemetry_payload_buffer)));
+
+    if ((telemetry_disable_flag & DISABLE_LIGHT) == 0)
+    {
+        RETURN_ERR_IF_FAILED(append_json_property_int32(&jw, telemetry_name_light_span, light));
+    }
+
+    if ((telemetry_disable_flag & DISABLE_TEMPERATURE) == 0)
+    {
+        RETURN_ERR_IF_FAILED(append_json_property_int32(&jw, telemetry_name_temperature_span, temperature));
+    }
+    
+//    if ((telemetry_disable_flag & DISABLE_TEMPERATURE) == 0)
+    if (1)
+    {
+        RETURN_ERR_IF_FAILED(append_json_property_int32(&jw, telemetry_name_aqi_span, AQI));
+    }
+
+    if (1)
+    {
+        RETURN_ERR_IF_FAILED(append_json_property_int32(&jw, telemetry_name_tvoc_span, TVOC));
+    }
+
+    if (1)
+    {
+        RETURN_ERR_IF_FAILED(append_json_property_int32(&jw, telemetry_name_co2_span, ECO2));
+    }
+
+    
+    RETURN_ERR_IF_FAILED(end_json_object(&jw));
+    *out_payload_span = az_json_writer_get_bytes_used_in_destination(&jw);
+    return AZ_OK;
+}
+
+
 
 /**********************************************
 * Create JSON document for command error response
@@ -475,6 +532,9 @@ az_result send_telemetry_message(void)
 
     int16_t temp;
     int32_t light;
+    uint8_t AQI;
+    uint16_t TVOC;
+    uint16_t ECO2;
 
     if ((telemetry_disable_flag & (DISABLE_LIGHT | DISABLE_TEMPERATURE)) == 0x3)
     {
@@ -491,9 +551,24 @@ az_result send_telemetry_message(void)
     {
         temp = APP_GetTempSensorValue();
     }
+    
+    if (use_AQ9_sensors)
+    {
+        AQI = APP_GetAQI();
+        TVOC = APP_GetTVOC();
+        ECO2 = APP_GetECO2();
+    }
+    
+    debug_printGood("AZURE: AQI: %d", AQI);
+    debug_printGood("AZURE: TVOC: %d", TVOC);
+    debug_printGood("AZURE: ECO2: %d", ECO2);
 
-    RETURN_ERR_WITH_MESSAGE_IF_FAILED(
-        build_sensor_telemetry_message(&telemetry_payload_span, temp, light),
+//    RETURN_ERR_WITH_MESSAGE_IF_FAILED(
+//        build_sensor_telemetry_message(&telemetry_payload_span, temp, light),
+//        "Failed to build sensor telemetry JSON payload");
+
+       RETURN_ERR_WITH_MESSAGE_IF_FAILED(
+        build_sensor_telemetry_message(&telemetry_payload_span, temp, light, AQI, TVOC, ECO2),
         "Failed to build sensor telemetry JSON payload");
 
     debug_printGood("AZURE: %s", az_span_ptr(telemetry_payload_span));
